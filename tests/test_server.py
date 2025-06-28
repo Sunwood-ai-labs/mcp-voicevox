@@ -1,20 +1,12 @@
 import os
 import sys
+import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
 
 from mcp_server_voicevox.server import VoiceVoxServer
-
-
-def test_server_connection():
-    """VoiceVoxサーバーへの接続が正常に確認できるかテスト"""
-    
-    voicevox_url = "http://localhost:50021/version"
-    response = requests.get(f"{voicevox_url}")    
-    response.raise_for_status() 
-
 
 def test_init_success(mock_requests, mock_os_operations):
     """VoiceVoxServerの初期化が正常に行われるかテスト"""
@@ -76,30 +68,65 @@ def test_text_to_speech(voicevox_server, mock_requests, mock_file_operations, mo
         mock_play_audio.assert_called_once()
 
 
-@pytest.mark.parametrize("platform,expected_method", [
-    ("win32", "os.startfile"),
-    ("darwin", "subprocess.run with afplay"),
-    ("linux", "subprocess.run with aplay")
+@pytest.mark.parametrize("platform_name, mock_method, expected_calls", [
+    (
+        "Windows",
+        "os.startfile",
+        [
+            ("powershell", ['powershell', '-c', "(New-Object Media.SoundPlayer '/path/to/audio.wav').PlaySync()"]),
+            ("wmplayer", ['start', '/min', 'wmplayer', '/close', '/path/to/audio.wav']),
+            ("startfile", '/path/to/audio.wav'),
+        ]
+    ),
+    ("Darwin", "subprocess.run", [("afplay", ["afplay", "/path/to/audio.wav"])]),
+    (
+        "Linux",
+        "subprocess.run",
+        [
+            ("aplay", ["aplay", "-q", "/path/to/audio.wav"]),
+            ("paplay", ["paplay", "/path/to/audio.wav"]),
+            ("xdg-open", ["xdg-open", "/path/to/audio.wav"]),
+        ]
+    ),
 ])
-def test_play_audio(voicevox_server, platform, expected_method, mock_subprocess):
+def test_play_audio(voicevox_server, mock_subprocess, platform_name, mock_method, expected_calls):
     """play_audioメソッドが各プラットフォームで正しく動作するかテスト"""
-    # プラットフォームをモック化
-    with patch("sys.platform", platform):
-        if platform == "win32":
+    with patch("platform.system", return_value=platform_name):
+        # Windowsの場合の特殊なモック処理
+        if platform_name == "Windows":
             with patch("os.startfile") as mock_startfile:
+                # 最初の2つの試みが失敗するように設定
+                mock_subprocess.side_effect = [
+                    subprocess.SubprocessError,
+                    subprocess.SubprocessError,
+                    None  # 3番目のos.startfileは成功
+                ]
                 voicevox_server.play_audio("/path/to/audio.wav")
-                mock_startfile.assert_called_once_with("/path/to/audio.wav")
-        elif platform == "darwin":
-            voicevox_server.play_audio("/path/to/audio.wav")
-            mock_subprocess.assert_called_once_with(["afplay", "/path/to/audio.wav"], check=True)
-        else:  # linux
-            # aplayが成功するケース
-            voicevox_server.play_audio("/path/to/audio.wav")
-            mock_subprocess.assert_called_once_with(["aplay", "-q", "/path/to/audio.wav"], check=True)
-            
-            # aplayが失敗してxdg-openにフォールバックするケース
-            mock_subprocess.reset_mock()
-            mock_subprocess.side_effect = [FileNotFoundError, None]  # 最初は失敗、2回目は成功
-            voicevox_server.play_audio("/path/to/audio.wav")
-            assert mock_subprocess.call_count == 2
-            mock_subprocess.assert_any_call(["xdg-open", "/path/to/audio.wav"], check=True)
+                
+                # PowerShell と wmplayer の呼び出しを確認
+                assert mock_subprocess.call_count == 2
+                mock_subprocess.assert_any_call(
+                    ['powershell', '-c', "(New-Object Media.SoundPlayer '/path/to/audio.wav').PlaySync()"],
+                    check=True, capture_output=True
+                )
+                mock_subprocess.assert_any_call(
+                    ['start', '/min', 'wmplayer', '/close', '/path/to/audio.wav'],
+                    shell=True, check=True
+                )
+                
+                # os.startfileが最終的に呼ばれることを確認
+                mock_startfile.assert_called_once_with('/path/to/audio.wav')
+
+        # macOS と Linux の場合のテスト
+        else:
+            for i, (name, call_args) in enumerate(expected_calls):
+                mock_subprocess.reset_mock()
+                # 最後の試み以外は失敗するように設定
+                side_effects = [subprocess.SubprocessError] * i + [None]
+                mock_subprocess.side_effect = side_effects
+                
+                voicevox_server.play_audio("/path/to/audio.wav")
+                
+                # 正しいコマンドが呼ばれたか確認
+                mock_subprocess.assert_called_with(call_args, check=True)
+                assert mock_subprocess.call_count == i + 1
