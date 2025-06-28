@@ -1,6 +1,6 @@
 [project]
 name = "mcp-server-voicevox"
-version = "0.1.0"
+version = "0.2.0"
 description = "A Model Context Protocol server providing VoiceVox text-to-speech functionality for LLMs"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -24,6 +24,10 @@ dependencies = [
 
 [project.scripts]
 mcp-server-voicevox = "mcp_server_voicevox:main"
+
+[project.urls]
+Repository = "https://github.com/Sunwood-ai-labs/mcp-voicevox"
+PyPI = "https://pypi.org/project/mcp-server-voicevox/"
 
 [build-system]
 requires = ["hatchling"]
