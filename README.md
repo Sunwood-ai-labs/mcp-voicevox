@@ -14,6 +14,11 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Pytest](https://img.shields.io/badge/tested%20with-pytest-00AEEF?logo=pytest)](https://pytest.org)
 
+[![GitHub Repo stars](https://img.shields.io/github/stars/Sunwood-ai-labs/mcp-voicevox?style=social)](https://github.com/Sunwood-ai-labs/mcp-voicevox/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/Sunwood-ai-labs/mcp-voicevox?style=social)](https://github.com/Sunwood-ai-labs/mcp-voicevox/network/members)
+[![GitHub release](https://img.shields.io/github/v/release/Sunwood-ai-labs/mcp-voicevox)](https://github.com/Sunwood-ai-labs/mcp-voicevox/releases)
+[![GitHub tag](https://img.shields.io/github/v/tag/Sunwood-ai-labs/mcp-voicevox)](https://github.com/Sunwood-ai-labs/mcp-voicevox/tags)
+
 </div>
 
 VoiceVox を介してテキスト読み上げ機能を提供する Model Context Protocol サーバーです。このサーバーにより、Claude は VoiceVox エンジンが提供する様々な音声を使用してテキストから音声を生成することができます。
@@ -68,12 +73,15 @@ Claude Desktop の設定に追加：
 <summary>uvx を使用する場合</summary>
 
 ```json
-"mcpServers": {
-  "voicevox": {
-    "command": "uvx",
-    "args": ["mcp-server-voicevox", "--voicevox-url=http://localhost:50021"]
+{
+  "mcpServers": {
+    "voicevox": {
+      "command": "uvx",
+      "args": ["mcp-server-voicevox", "--voicevox-url=http://localhost:50021"]
+    }
   }
 }
+
 ```
 </details>
 
@@ -104,3 +112,10 @@ Claude Desktop の設定に追加：
 ## 📄 ライセンス
 
 mcp-server-voicevox は MIT ライセンスの下で提供されています。これは、MIT ライセンスの条件に従い、自由に使用、修正、配布することができることを意味します。
+
+
+## 🔗 リンク
+
+- GitHub: [https://github.com/Sunwood-ai-labs/mcp-voicevox](https://github.com/Sunwood-ai-labs/mcp-voicevox)
+  - [タグ一覧](https://github.com/Sunwood-ai-labs/mcp-voicevox/tags)
+- PyPI: [https://pypi.org/project/mcp-server-voicevox/](https://pypi.org/project/mcp-server-voicevox/)
