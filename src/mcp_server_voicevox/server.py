@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 from typing import Any, Dict, List, Optional, Sequence, Union
+import platform
 
 import requests
 from mcp.server import Server
@@ -60,27 +61,57 @@ class VoiceVoxServer:
     def play_audio(self, filepath: str) -> None:
         """Play audio file using system default player"""
         try:
-            if sys.platform == "win32":
+            system = platform.system().lower()
+            
+            if system == "windows":
+                # Windowsの場合、より確実な再生方法を試す
+                try:
+                    # まずはPowerShellを使ってみる
+                    subprocess.run([
+                        "powershell", "-c",
+                        f"(New-Object Media.SoundPlayer '{filepath}').PlaySync()"
+                    ], check=True, capture_output=True)
+                    logger.info(f"Audio played using PowerShell: {filepath}")
+                    return
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    pass
+                
+                try:
+                    # 次にWindows Media Playerを試す
+                    subprocess.run([
+                        "start", "/min", "wmplayer", "/close", filepath
+                    ], shell=True, check=True)
+                    logger.info(f"Audio played using Windows Media Player: {filepath}")
+                    return
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    pass
+                
+                # 最後の手段としてos.startfile（ダイアログが出る可能性がある）
                 os.startfile(filepath)
-                logger.info(f"Audio played using Windows default player: {filepath}")
-            elif sys.platform == "darwin":  # macOS
+                logger.info(f"Audio opened with default application: {filepath}")
+                
+            elif system == "darwin":  # macOS
                 subprocess.run(["afplay", filepath], check=True)
                 logger.info(f"Audio played using afplay: {filepath}")
-            else:  # linux variants
+                
+            else:  # Linux
                 try:
                     subprocess.run(["aplay", "-q", filepath], check=True)
                     logger.info(f"Audio played using aplay: {filepath}")
                 except (subprocess.SubprocessError, FileNotFoundError):
                     try:
-                        subprocess.run(["xdg-open", filepath], check=True)
-                        logger.info(f"Audio played using xdg-open: {filepath}")
+                        subprocess.run(["paplay", filepath], check=True)
+                        logger.info(f"Audio played using paplay: {filepath}")
                     except (subprocess.SubprocessError, FileNotFoundError):
-                        logger.error("Failed to find a suitable audio player on this system")
+                        subprocess.run(["xdg-open", filepath], check=True)
+                        logger.info(f"Audio opened with default application: {filepath}")
+                        
         except Exception as e:
             logger.error(f"Failed to play audio: {e}")
+            logger.info(f"Audio file saved to: {filepath}")
 
-    def text_to_speech(self, text: str, speaker_id: int = 1, speed: float = 1.3) -> str:
-        """Convert text to speech using VoiceVox, save to file, and play it"""
+    def text_to_speech(self, text: str, speaker_id: int = 1, speed: float = 1.3, auto_play: bool = True) -> str:
+        """Convert text to speech using VoiceVox, save to file, and optionally play it"""
         # Get audio query
         query_response = requests.post(
             f"{self.voicevox_url}/audio_query",
@@ -112,8 +143,9 @@ class VoiceVoxServer:
         with open(filepath, "wb") as f:
             f.write(synthesis_response.content)
         
-        # Play the audio
-        self.play_audio(filepath)
+        # Play the audio if auto_play is True
+        if auto_play:
+            self.play_audio(filepath)
         
         return filepath
 
@@ -154,6 +186,11 @@ async def serve(voicevox_url: str = "http://localhost:50021", output_dir: Option
                             "type": "number",
                             "description": "Playback speed. Default is 1.3.",
                             "default": 1.3
+                        },
+                        "auto_play": {
+                            "type": "boolean",
+                            "description": "Whether to automatically play the generated audio. Default is True.",
+                            "default": True
                         }
                     },
                     "required": ["text"],
@@ -191,14 +228,17 @@ async def serve(voicevox_url: str = "http://localhost:50021", output_dir: Option
                     raise ValueError("Text is required")
                 
                 speaker_id = arguments.get("speaker_id", 1)
-                speed = arguments.get("speed", 1.5)
+                speed = arguments.get("speed", 1.3)
+                auto_play = arguments.get("auto_play", True)
                 
-                filepath = voicevox_server.text_to_speech(text, speaker_id, speed)
+                filepath = voicevox_server.text_to_speech(text, speaker_id, speed, auto_play)
+                
+                play_status = "音声を生成し再生しました。" if auto_play else "音声を生成しました。"
                 
                 return [
                     TextContent(
                         type="text",
-                        text=f"音声を生成し再生しました。保存先:\n{filepath}\n\n音声ファイルは sound フォルダに保存されました。"
+                        text=f"{play_status}保存先:\n{filepath}\n\n音声ファイルは sound フォルダに保存されました。"
                     )
                 ]
             
