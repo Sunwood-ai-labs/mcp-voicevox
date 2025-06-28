@@ -25,18 +25,6 @@ VoiceVox を介してテキスト読み上げ機能を提供する Model Context
 
 ---
 
-## 🔗 リンク
-
-[![GitHub Repo stars](https://img.shields.io/github/stars/Sunwood-ai-labs/mcp-voicevox?style=social)](https://github.com/Sunwood-ai-labs/mcp-voicevox/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/Sunwood-ai-labs/mcp-voicevox?style=social)](https://github.com/Sunwood-ai-labs/mcp-voicevox/network/members)
-[![GitHub release](https://img.shields.io/github/v/release/Sunwood-ai-labs/mcp-voicevox)](https://github.com/Sunwood-ai-labs/mcp-voicevox/releases)
-[![GitHub tag](https://img.shields.io/github/v/tag/Sunwood-ai-labs/mcp-voicevox)](https://github.com/Sunwood-ai-labs/mcp-voicevox/tags)
-
-- GitHub: [https://github.com/Sunwood-ai-labs/mcp-voicevox](https://github.com/Sunwood-ai-labs/mcp-voicevox)
-  - [タグ一覧](https://github.com/Sunwood-ai-labs/mcp-voicevox/tags)
-- PyPI: [https://pypi.org/project/mcp-server-voicevox/](https://pypi.org/project/mcp-server-voicevox/)
-
-
 
 ## ✨ 機能
 
